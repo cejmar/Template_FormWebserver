@@ -29,4 +29,15 @@ async function sendAdminNotification(name, email, questions_suggestions, payment
   });
 }
 
-module.exports = { sendConfirmationMail, sendAdminNotification };
+function getNotificationEmails() {
+  return new Promise((resolve, reject) => {
+    db.all(`SELECT email FROM users WHERE notifications = 1 AND email IS NOT NULL`, (err, rows) => {
+      if (err) reject(err);
+      else resolve(rows.map(r => r.email));
+    });
+  });
+}
+
+
+
+module.exports = { sendConfirmationMail, sendAdminNotification, getNotificationEmails };

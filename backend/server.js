@@ -3,7 +3,7 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const { initDB, saveRegistration } = require("./db");
+const { initDB, saveRegistration, validateAdminLogin, getAllRegistrations } = require("./db");
 const { sendConfirmationMail, sendAdminNotification } = require("./mailer");
 
 require("dotenv").config();
@@ -43,6 +43,34 @@ app.post("/register", async (req, res) => {
     res.status(500).send("Fehler bei der Anmeldung");
   }
 });
+
+// Admin Login
+app.post("/admin/login", async (req, res) => {
+  const { username, password } = req.body;
+  try {
+    const user = await validateAdminLogin(username, password);
+    if (user) {
+      res.status(200).json({ success: true, user }); // <- user = { id, username, email, notifications, ... }
+    } else {
+      res.status(401).json({ success: false, message: "Falsche Zugangsdaten" });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Fehler beim Login" });
+  }
+});
+
+
+// Admin: Liste aller Anmeldungen
+app.get("/admin/registrations", async (req, res) => {
+  try {
+    const list = await getAllRegistrations();
+    res.status(200).json(list);
+  } catch (err) {
+    res.status(500).json({ message: "Fehler beim Laden der Anmeldungen" });
+  }
+});
+
 
 app.listen(port, () => {
   console.log(`Backend läuft auf http://localhost:${port}`);
