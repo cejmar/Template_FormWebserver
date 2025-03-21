@@ -1,0 +1,14 @@
+services:
+  backend:
+    build: ./backend
+    volumes:
+      - ./data:/app/data
+    env_file:
+      - .env
+    ports:
+      - "5000:5000"
+  
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:8080"
