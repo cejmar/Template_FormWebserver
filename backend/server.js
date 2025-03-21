@@ -27,15 +27,15 @@ initDB();
 
 // API: Formular absenden
 app.post("/register", async (req, res) => {
-  const { name, email, cosplay, honeypot } = req.body;
-
-  if (honeypot) return res.status(400).send("Nice try, bot 😎");
+  const { name, email, questions_suggestions, payment_method, honeypot } = req.body;
+  //[name, email, questions_suggestions, payment_method]
+  if (honeypot) return res.status(400).send("You tried too many times");
 
   try {
-    await saveRegistration({ name, email, cosplay });
+    await saveRegistration({ name, email, questions_suggestions, payment_method});
 
     await sendConfirmationMail(name, email);
-    await sendAdminNotification(name, email, cosplay);
+    await sendAdminNotification(name, email, questions_suggestions, payment_method);
 
     res.status(200).send("Erfolgreich angemeldet");
   } catch (err) {

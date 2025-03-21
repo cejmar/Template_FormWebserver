@@ -2,11 +2,6 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 
-var fs = require('fs');
-var files = fs.readdirSync('/app');
-var files2 = fs.readdirSync('/app/data');
-console.log(files)
-
 const dbPath = path.resolve(__dirname, "./data/db.sqlite");
 
 let db;

@@ -15,17 +15,17 @@ async function sendConfirmationMail(name, email) {
   await transporter.sendMail({
     from: process.env.MAIL_FROM,
     to: email,
-    subject: "Deine Anmeldung zur CosCon",
-    text: `Hallo ${name},\n\ndanke für deine Anmeldung zur CosCon! Wir freuen uns auf dich.\n\nLiebe Grüße\nDein CosCon-Team`,
+    subject: `Deine Anmeldung zur ${process.env.ORGANIZATION_NAME}`,
+    text: `Hallo ${name},\n\ndanke für deine Anmeldung zur ${process.env.ORGANIZATION_NAME}! Wir freuen uns auf dich.\n\nLiebe Grüße\nDein ${process.env.ORGANIZATION_NAME}-Team`,
   });
 }
 
-async function sendAdminNotification(name, email, cosplay) {
+async function sendAdminNotification(name, email, questions_suggestions, payment_method) {
   await transporter.sendMail({
     from: process.env.MAIL_FROM,
     to: process.env.MAIL_TO,
     subject: "Neue Anmeldung eingegangen",
-    text: `Neue Anmeldung:\n\nName: ${name}\nE-Mail: ${email}\nCosplay: ${cosplay}`,
+    text: `Neue Anmeldung:\n\nName: ${name}\nE-Mail: ${email}\nZahlungsoption: ${payment_method}\nFragen oder Vorschläge: ${questions_suggestions}`,
   });
 }
 
