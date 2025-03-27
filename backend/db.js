@@ -15,16 +15,29 @@ function initDB() {
   db = new sqlite3.Database(dbPath);
 
   db.serialize(() => {
-    db.run(`
-      CREATE TABLE IF NOT EXISTS registrations (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        email TEXT,
-        questions_suggestions TEXT,
-        payment_method TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      )
-    `);
+  // Event Tabelle
+  db.run(`
+    CREATE TABLE IF NOT EXISTS events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug TEXT UNIQUE,
+      name TEXT,
+      start_date TEXT,
+      end_date TEXT
+    )
+  `);
+  // Teilnehmer
+  db.run(`
+    CREATE TABLE IF NOT EXISTS attendance (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      event_id INTEGER,
+      name TEXT,
+      email TEXT,
+      questions_suggestions TEXT,
+      payment_method TEXT,
+      created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(event_id) REFERENCES events(id)
+    )
+  `);
   // Admin-Nutzer
   db.run(`
     CREATE TABLE IF NOT EXISTS users (
@@ -67,21 +80,73 @@ function getAllRegistrations() {
   });
 }
 
-function saveRegistration({ name, email, questions_suggestions, payment_method }) {
+function saveRegistration(slug, { name, email, questions_suggestions, payment_method }) {
   return new Promise((resolve, reject) => {
-    db.run(
-      `INSERT INTO registrations (name, email, questions_suggestions, payment_method) VALUES (?, ?, ?, ?)`,
-      [name, email, questions_suggestions, payment_method],
-      function (err) {
+    db.get(`SELECT id FROM events WHERE slug = ?`, [slug], (err, event) => {
+      if (err || !event) return reject("Event nicht gefunden");
+
+      db.run(
+        `INSERT INTO attendance (event_id, name, email, questions_suggestions, payment_method) VALUES (?, ?, ?, ?, ?)`,
+        [event.id, name, email, questions_suggestions, payment_method],
+        function (err) {
+          if (err) reject(err);
+          else resolve();
+        }
+      );
+    });
+  });
+}
+
+function getRegistrationsForEvent(slug) {
+  return new Promise((resolve, reject) => {
+    db.get(`SELECT id FROM events WHERE slug = ?`, [slug], (err, event) => {
+      if (err || !event) return reject("Event nicht gefunden");
+
+      db.all(
+        `SELECT * FROM attendance WHERE event_id = ? ORDER BY created_at DESC`,
+        [event.id],
+        (err, rows) => {
+          if (err) reject(err);
+          else resolve(rows);
+        }
+      );
+    });
+  });
+}
+
+function getEvents() {
+  return new Promise((resolve, reject) => {
+    const now = new Date().toISOString();
+    db.all(
+      `SELECT * FROM events`,
+      (err, rows) => {
         if (err) reject(err);
-        else resolve();
+        else resolve(rows);
       }
     );
   });
 }
 
+function addEvent({ slug, name, start_date, end_date }) {
+  return new Promise((resolve, reject) => {
+    db.run(
+      `INSERT INTO events (slug, name, start_date, end_date) VALUES (?, ?, ?, ?)`,
+      [slug, name, start_date, end_date],
+      function (err) {
+        if (err) return reject(err);
+        resolve();
+      }
+    );
+  });
+}
+
+
 module.exports = {
   initDB,
   validateAdminLogin,
   getAllRegistrations,
+  saveRegistration,
+  getEvents,
+  addEvent,
+  getRegistrationsForEvent
 };

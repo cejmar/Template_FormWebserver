@@ -3,7 +3,7 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const { initDB, saveRegistration, validateAdminLogin, getAllRegistrations } = require("./db");
+const { initDB, getRegistrationsForEvent, saveRegistration, validateAdminLogin, getAllRegistrations, getEvents, addEvent} = require("./db");
 const { sendConfirmationMail, sendAdminNotification } = require("./mailer");
 
 require("dotenv").config();
@@ -25,6 +25,7 @@ app.use("/register", limiter);
 // Init DB
 initDB();
 
+/*
 // API: Formular absenden
 app.post("/register", async (req, res) => {
   const { name, email, questions_suggestions, payment_method, honeypot } = req.body;
@@ -43,6 +44,7 @@ app.post("/register", async (req, res) => {
     res.status(500).send("Fehler bei der Anmeldung");
   }
 });
+*/
 
 // Admin Login
 app.post("/admin/login", async (req, res) => {
@@ -60,13 +62,63 @@ app.post("/admin/login", async (req, res) => {
   }
 });
 
-
 // Admin: Liste aller Anmeldungen
 app.get("/admin/registrations", async (req, res) => {
   try {
     const list = await getAllRegistrations();
     res.status(200).json(list);
   } catch (err) {
+    res.status(500).json({ message: "Fehler beim Laden der Anmeldungen" });
+  }
+});
+
+// API: Formular absenden
+app.post("/register/:slug", async (req, res) => {
+  const slug = req.params.slug;
+  const { name, email, questions_suggestions, payment_method, honeypot } = req.body;
+
+  if (honeypot) return res.status(400).send("You tried too many times");
+
+  try {
+    await saveRegistration(slug, { name, email, questions_suggestions, payment_method });
+    res.status(200).send("Erfolgreich angemeldet");
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Fehler bei der Anmeldung");
+  }
+});
+
+app.get("/events", async (req, res) => {
+  try {
+    const events = await getEvents();
+    res.status(200).json(events);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Fehler beim Laden der Events" });
+  }
+});
+
+//todo keine db requests in server.js
+
+app.post("/admin/events", async (req, res) => {
+  const { slug, name, start_date, end_date } = req.body;
+  try {
+    await addEvent({ slug, name, start_date, end_date });
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: "Fehler beim Erstellen des Events" });
+  }
+});
+
+
+app.get("/admin/registrations/:slug", async (req, res) => {
+  const slug = req.params.slug;
+  try {
+    const registrations = await getRegistrationsForEvent(slug);
+    res.status(200).json(registrations);
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: "Fehler beim Laden der Anmeldungen" });
   }
 });

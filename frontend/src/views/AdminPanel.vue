@@ -1,62 +1,75 @@
 <template>
-    <div style="padding: 2rem; font-family: sans-serif">
-      <h2>Admin-Panel</h2>
-      <p>Willkommen, {{ user?.username }}</p>
-      <button @click="logout">Logout</button>
-      <div v-if="list.length > 0">
-        <h3>Anmeldungen:</h3>
-        <table border="1" cellpadding="6" style="margin-top: 1rem">
-          <thead>
-            <tr>
-              <th>Name</th>
-              <th>Email</th>
-              <th>Zahlung</th>
-              <th>Nachricht</th>
-              <th>Datum</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="entry in list" :key="entry.id">
-              <td>{{ entry.name }}</td>
-              <td>{{ entry.email }}</td>
-              <td>{{ entry.payment_method }}</td>
-              <td>{{ entry.questions_suggestions }}</td>
-              <td>{{ entry.created_at }}</td>
-            </tr>
-          </tbody>
-        </table>
+    <div style="padding: 2rem">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1>🛠️ Admin Panel</h1>
+        <button @click="logout" style="padding: 0.5rem 1rem">🚪 Logout</button>
+      </div>
+  
+      <button @click="showCreateForm = !showCreateForm">
+        {{ showCreateForm ? "Formular schließen" : "➕ Neuen Event erstellen" }}
+      </button>
+  
+      <EventCreateForm v-if="showCreateForm" @created="fetchEvents" />
+  
+      <hr style="margin: 2rem 0" />
+      
+      <h1>Events</h1>
+      <hr style="margin: 2rem 0" />
+      <div v-for="event in events" :key="event.id" style="margin-bottom: 2rem">
+        <h2>{{ event.name }} ({{ event.slug }})</h2>
+        <p>🗓️ Anmeldung: {{ event.start_date }} bis {{ event.end_date }}</p>
+  
+        <button @click="toggleEvent(event.slug)">
+          {{ expandedSlug === event.slug ? "▲ Verstecke Teilnehmer" : "👥 Zeige Teilnehmer" }}
+        </button>
+  
+        <EventRegistrationList
+          v-if="expandedSlug === event.slug"
+          :slug="event.slug"
+        />
       </div>
     </div>
   </template>
   
   <script>
   import axios from "axios";
+  import EventRegistrationList from "./EventRegistrationList.vue";
+  import EventCreateForm from "./EventCreateForm.vue";
   
   export default {
+    components: {
+      EventRegistrationList,
+      EventCreateForm,
+    },
     data() {
       return {
-        user: null,
-        list: [],
+        events: [],
+        expandedSlug: null,
+        showCreateForm: false,
       };
     },
-    mounted() {
-      const user = JSON.parse(localStorage.getItem("admin_user"));
-      if (!user) {
-        this.$router.push("/admin");
-        return;
-      }
-  
-      this.user = user;
-  
-      axios.get("http://localhost:5000/admin/registrations").then((res) => {
-        this.list = res.data;
-      });
-    },
     methods: {
+      async fetchEvents() {
+        const res = await axios.get("http://localhost:5000/events");
+        this.events = res.data;
+      },
+      toggleEvent(slug) {
+        this.expandedSlug = this.expandedSlug === slug ? null : slug;
+      },
       logout() {
         localStorage.removeItem("admin_user");
-        this.$router.push("/admin");
+        this.$router.push("/admin/login");
       },
+      checkLogin() {
+        const user = JSON.parse(localStorage.getItem("admin_user"));
+        if (!user) {
+          this.$router.push("/admin/login");
+        }
+      },
+    },
+    mounted() {
+      this.checkLogin();
+      this.fetchEvents();
     },
   };
   </script>
